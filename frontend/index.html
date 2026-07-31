@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Evo Messenger</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1e1e2e; color: #cdd6f4; padding: 50px; display: flex; justify-content: center; }
+        .container { background: #313244; padding: 20px; border-radius: 10px; width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        input, button { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; box-sizing: border-box; }
+        input { background: #181825; color: #cdd6f4; }
+        button { background: #89b4fa; color: #11111b; font-weight: bold; cursor: pointer; }
+        button:hover { background: #b4befe; }
+        #chat-block { display: none; }
+        #messages { height: 300px; overflow-y: auto; background: #181825; padding: 10px; border-radius: 5px; margin-bottom: 10px; }
+        .msg { margin-bottom: 5px; word-wrap: break-word; }
+        .username { color: #f38ba8; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 style="text-align: center;">EVO MESSENGER</h2>
+    
+ 
+    <div id="auth-block">
+        <input type="text" id="username" placeholder="Логин">
+        <input type="password" id="password" placeholder="Пароль">
+        <button onclick="register()">Зарегистрироваться</button>
+        <button onclick="login()">Войти</button>
+    </div>
+
+
+    <div id="chat-block">
+        <div id="messages"></div>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="msg-input" placeholder="Введите сообщение...">
+            <button onclick="sendMessage()" style="width: 100px;">Send</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let ws;
+    let currentToken = "";
+
+    async function register() {
+        const u = document.getElementById("username").value;
+        const p = document.getElementById("password").value;
+        const res = await fetch("http://localhost:8081/register", {
+            method: "POST",
+            body: JSON.stringify({username: u, password: p})
+        });
+        if (res.ok) alert("Успешно! Теперь нажмите 'Войти'.");
+        else alert("Ошибка регистрации");
+    }
+
+    async function login() {
+        const u = document.getElementById("username").value;
+        const p = document.getElementById("password").value;
+        const res = await fetch("http://localhost:8081/login", {
+            method: "POST",
+            body: JSON.stringify({username: u, password: p})
+        });
+        
+        if (res.ok) {
+            const data = await res.json();
+            currentToken = data.token;
+            document.getElementById("auth-block").style.display = "none";
+            document.getElementById("chat-block").style.display = "block";
+            await loadHistory();
+            connectWS();
+        } else {
+            alert("Неверный логин или пароль");
+        }
+    }
+
+    async function loadHistory() {
+        const res = await fetch("http://localhost:8082/history");
+        const messages = await res.json();
+        const box = document.getElementById("messages");
+        box.innerHTML = "";
+        
+        if (!messages || messages.length === 0) return;
+        
+        for (let i = 0; i < messages.length; i++) {
+            if (!messages[i].content) {
+                continue; 
+            }
+            appendMessage(messages[i].username, messages[i].content);
+        }
+    }
+
+    function connectWS() {
+        ws = new WebSocket("ws://localhost:8082/ws?token=" + currentToken);
+        
+        ws.onmessage = function(event) {
+            const msg = JSON.parse(event.data);
+            appendMessage(msg.username, msg.content);
+        };
+        
+        ws.onclose = function() {
+            alert("Соединение с сервером потеряно");
+        };
+    }
+
+    function sendMessage() {
+        const input = document.getElementById("msg-input");
+        if (input.value.trim() !== "") {
+            ws.send(input.value);
+            input.value = "";
+        }
+    }
+
+    function appendMessage(username, content) {
+        const box = document.getElementById("messages");
+        box.innerHTML += `<div class="msg"><span class="username">${username}:</span> ${content}</div>`;
+        box.scrollTop = box.scrollHeight;
+    }
+</script>
+
+</body>
+</html>
