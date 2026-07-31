@@ -6,12 +6,13 @@ import (
 )
 
 func main() {
+	
+	FRONTEND := http.FileServer(http.Dir("./frontend"))
+	http.Handle("/", FRONTEND)
 
-	FRONTEND := http.FileServer(http.Dir(http.Dir("./frontend"))
-	http.Handle("/", fs)
-
-	log.Println("Сервер фронтенда запущен на :3000)
+	log.Println("Сервер фронтенда запущен на 3000)
 	if err := http.ListenAndServe(":3000", nil); err != nil {
 		log.Fatal(err)
 	}
+
 }
