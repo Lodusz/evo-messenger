@@ -23,7 +23,7 @@ func NewAuthRepository() *AuthRepository {
 		log.Fatalf("Ошибка драйвера БД: %v", err)
 	}
 	if err = db.Ping(); err != nil {
-		log.Fatalf("БД недоступна: %v", err)
+		log.Fatalf("БД нsедоступна: %v", err)
 	}
 
 	return &AuthRepository{db: db}

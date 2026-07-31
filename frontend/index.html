@@ -21,14 +21,12 @@
 <div class="container">
     <h2 style="text-align: center;">EVO MESSENGER</h2>
     
- 
     <div id="auth-block">
         <input type="text" id="username" placeholder="Логин">
         <input type="password" id="password" placeholder="Пароль">
         <button onclick="register()">Зарегистрироваться</button>
         <button onclick="login()">Войти</button>
     </div>
-
 
     <div id="chat-block">
         <div id="messages"></div>
@@ -42,16 +40,22 @@
 <script>
     let ws;
     let currentToken = "";
+    let currentUsername = "";
 
     async function register() {
         const u = document.getElementById("username").value;
         const p = document.getElementById("password").value;
         const res = await fetch("http://localhost:8081/register", {
             method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({username: u, password: p})
         });
-        if (res.ok) alert("Успешно! Теперь нажмите 'Войти'.");
-        else alert("Ошибка регистрации");
+        if (res.ok) {
+            alert("Успешно! Теперь нажмите 'Войти'.");
+        } else {
+            const errData = await res.json();
+            alert("Ошибка регистрации: " + (errData.error || "неизвестная ошибка"));
+        }
     }
 
     async function login() {
@@ -59,12 +63,15 @@
         const p = document.getElementById("password").value;
         const res = await fetch("http://localhost:8081/login", {
             method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({username: u, password: p})
         });
         
         if (res.ok) {
             const data = await res.json();
             currentToken = data.token;
+            currentUsername = u;
+
             document.getElementById("auth-block").style.display = "none";
             document.getElementById("chat-block").style.display = "block";
             await loadHistory();
@@ -83,9 +90,7 @@
         if (!messages || messages.length === 0) return;
         
         for (let i = 0; i < messages.length; i++) {
-            if (!messages[i].content) {
-                continue; 
-            }
+            if (!messages[i].content) continue;
             appendMessage(messages[i].username, messages[i].content);
         }
     }
@@ -95,18 +100,22 @@
         
         ws.onmessage = function(event) {
             const msg = JSON.parse(event.data);
-            appendMessage(msg.username, msg.content);
+            if (msg.username !== currentUsername) {
+                appendMessage(msg.username, msg.content);
+            }
         };
         
         ws.onclose = function() {
-            alert("Соединение с сервером потеряно");
+            console.log("Соединение с вебсокетом закрыто");
         };
     }
 
     function sendMessage() {
         const input = document.getElementById("msg-input");
-        if (input.value.trim() !== "") {
-            ws.send(input.value);
+        const text = input.value.trim();
+        if (text !== "") {
+            appendMessage(currentUsername, text);
+            ws.send(text);
             input.value = "";
         }
     }

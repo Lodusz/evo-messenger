@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 
 	"auth-service/internal/service"
@@ -29,7 +30,10 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	if err := h.service.RegisterUser(req.Username, req.Password); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка регистрации"})
+
+		log.Printf("ОШИБКА ПРИ РЕГИСТРАЦИИ: %v\n", err)
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 

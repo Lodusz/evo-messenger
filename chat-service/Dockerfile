@@ -15,7 +15,6 @@ WORKDIR /app
 
 COPY --from=builder /app/chat-service .
 
-# Открываем порт 8082 для чата
 EXPOSE 8082
 
 CMD ["./chat-service"]
