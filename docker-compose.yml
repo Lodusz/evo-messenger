@@ -1,24 +1,25 @@
+version: '3.8'
+
 services:
   postgres:
     image: postgres:15-alpine
     environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=messenger
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: evo_messenger
     ports:
       - "5432:5432"
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-      - pgdata:/var/lib/postgresql/data
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:latest
+    image: confluentinc/cp-zookeeper:7.3.0
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
 
   kafka:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:7.3.0
     depends_on:
       - zookeeper
     ports:
@@ -31,5 +32,31 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
-volumes:
-  pgdata:
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "8081:8081"
+    environment:
+      - DATABASE_URL=postgres://user:password@postgres:5432/evo_messenger?sslmode=disable
+    depends_on:
+      - postgres
+
+  chat-service:
+    build: ./chat-service
+    ports:
+      - "8082:8082"
+    environment:
+      - DATABASE_URL=postgres://user:password@postgres:5432/evo_messenger?sslmode=disable
+      - KAFKA_BROKER=kafka:29092
+    depends_on:
+      - postgres
+      - kafka
+
+  frontend:
+    image: golang:1.25-alpine
+    working_dir: /app
+    volumes:
+      - .:/app
+    ports:
+      - "3000:3000"
+    command: go run server.go
