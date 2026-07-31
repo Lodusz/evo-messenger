@@ -93,6 +93,8 @@ func (c *Client) readPump() {
 		c.hub.repo.SaveMessage(msg.Username, msg.Content)
 
 		c.hub.kafkaSvc.ProduceMessage(msg)
+
+		c.hub.Broadcast <- msg
 	}
 }
 
