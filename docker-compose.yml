@@ -4,13 +4,18 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: evo_messenger
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - "5432:5432"
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
@@ -37,20 +42,27 @@ services:
     ports:
       - "8081:8081"
     environment:
-      - DATABASE_URL=postgres://user:password@postgres:5432/evo_messenger?sslmode=disable
+      - DATABASE_URL=${AUTH_DB_URL}
+    env_file:
+      - .env
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   chat-service:
     build: ./chat-service
     ports:
       - "8082:8082"
     environment:
-      - DATABASE_URL=postgres://user:password@postgres:5432/evo_messenger?sslmode=disable
+      - DATABASE_URL=${CHAT_DB_URL}
       - KAFKA_BROKER=kafka:29092
+    env_file:
+      - .env
     depends_on:
-      - postgres
-      - kafka
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
 
   frontend:
     image: golang:1.25-alpine

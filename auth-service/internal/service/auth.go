@@ -7,36 +7,43 @@ import (
 	"auth-service/internal/repository"
 
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 )
 
-var jwtSecret = []byte("my_secret_key_12345")
-
 type AuthService struct {
-	repo *repository.AuthRepository
+	repo      *repository.AuthRepository
+	jwtSecret []byte
 }
 
-func NewAuthService(repo *repository.AuthRepository) *AuthService {
-	return &AuthService{repo: repo}
+func NewAuthService(repo *repository.AuthRepository, secret string) *AuthService {
+	return &AuthService{
+		repo:      repo,
+		jwtSecret: []byte(secret),
+	}
 }
 
 func (s *AuthService) RegisterUser(username, password string) error {
-	return s.repo.CreateUser(username, password)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	return s.repo.CreateUser(username, string(hash))
 }
 
 func (s *AuthService) LoginUser(username, password string) (string, error) {
-	dbPassword, err := s.repo.GetPasswordByUsername(username)
+	dbPasswordHash, err := s.repo.GetPasswordByUsername(username)
 	if err != nil {
-		return "", errors.New("пользователь не найден")
+		return "", errors.New("неверный логин или пароль")
 	}
 
-	if dbPassword != password {
-		return "", errors.New("неверный пароль")
+	err = bcrypt.CompareHashAndPassword([]byte(dbPasswordHash), []byte(password))
+	if err != nil {
+		return "", errors.New("неверный логин или пароль")
 	}
 
-	// Генерируем токен
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username": username,
 		"exp":      time.Now().Add(time.Hour * 72).Unix(),
 	})
-	return token.SignedString(jwtSecret)
+	return token.SignedString(s.jwtSecret)
 }

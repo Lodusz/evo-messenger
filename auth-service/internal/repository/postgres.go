@@ -15,7 +15,7 @@ type AuthRepository struct {
 func NewAuthRepository() *AuthRepository {
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		dbURL = "postgres://user:password@localhost:5432/evo_messenger?sslmode=disable"
+		log.Fatal("db не заданооо в окружении")
 	}
 
 	db, err := sql.Open("postgres", dbURL)
@@ -23,7 +23,7 @@ func NewAuthRepository() *AuthRepository {
 		log.Fatalf("Ошибка драйвера БД: %v", err)
 	}
 	if err = db.Ping(); err != nil {
-		log.Fatalf("БД нsедоступна: %v", err)
+		log.Fatalf("БД недоступна: %v", err)
 	}
 
 	return &AuthRepository{db: db}

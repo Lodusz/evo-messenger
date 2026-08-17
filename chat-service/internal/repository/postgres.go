@@ -22,7 +22,7 @@ type ChatRepository struct {
 func NewChatRepository() *ChatRepository {
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		dbURL = "postgres://user:password@localhost:5432/evo_messenger?sslmode=disable"
+		log.Fatal("db не задан в окружении")
 	}
 
 	db, err := sql.Open("postgres", dbURL)
@@ -57,10 +57,5 @@ func (r *ChatRepository) GetHistory() ([]Message, error) {
 		}
 		messages = append(messages, msg)
 	}
-
-	if messages == nil {
-		messages = []Message{}
-	}
-
 	return messages, nil
 }

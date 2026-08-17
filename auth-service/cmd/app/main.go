@@ -20,8 +20,13 @@ import (
 func main() {
 	log.Println("Запуск Auth Service")
 
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatal("jwtsecret не задан в окружении")
+	}
+
 	repo := repository.NewAuthRepository()
-	authService := service.NewAuthService(repo)
+	authService := service.NewAuthService(repo, jwtSecret)
 	authHandler := handler.NewAuthHandler(authService)
 
 	gin.SetMode(gin.ReleaseMode)
@@ -57,7 +62,7 @@ func main() {
 		log.Fatalf("Принудительное завершение сервера Auth Service: %v\n", err)
 	}
 
-	log.Println("Auth Service остановлен!")
+	log.Println("Auth Service остановлен")
 }
 
 func corsMiddleware() gin.HandlerFunc {

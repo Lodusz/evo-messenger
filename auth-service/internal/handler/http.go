@@ -30,10 +30,8 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	if err := h.service.RegisterUser(req.Username, req.Password); err != nil {
-
 		log.Printf("ОШИБКА ПРИ РЕГИСТРАЦИИ: %v\n", err)
-
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при регистрации пользователя. Возможно, имя уже занято."})
 		return
 	}
 
